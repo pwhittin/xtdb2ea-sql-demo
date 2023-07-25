@@ -1,0 +1,4 @@
+{:mvn/repos {"ossrh-snapshots" {:url "https://s01.oss.sonatype.org/content/repositories/snapshots"}}
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        com.xtdb.labs/xtdb-api {:mvn/version "2.0.0-SNAPSHOT"}
+        com.xtdb.labs/xtdb-http-client-clj {:mvn/version "2.0.0-SNAPSHOT"}}}
