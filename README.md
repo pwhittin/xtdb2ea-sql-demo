@@ -1,6 +1,6 @@
 # rlws/xtdb2
 
-This is a demo program meant to illustrate the use of SQL with XTDB 2.0 Early Access.
+This is a demo program that illustrates the use of SQL with XTDB 2.0 Early Access.
 
 This program is really just a name space with a BIG "Rich Comment" meant to be used
 while discussing the use of SQL with XTDB 2.0 ea. The program uses the data and queries
