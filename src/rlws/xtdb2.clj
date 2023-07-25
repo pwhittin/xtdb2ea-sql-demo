@@ -164,10 +164,17 @@
   (xt/submit-tx
    xtdb-node
    (apply vector (for [{:keys [id name born death]} persons]
-                   [:sql ["INSERT INTO person (xt$id, name, born, death) VALUES (?, ?, ?, ?)" id name born death]])))
+                   [:sql ["INSERT INTO person (xt$id, name, born, death) 
+                           VALUES (?, ?, ?, ?)"
+                          id name born death]])))
 
   ;; query all of the person names
-  (xt/q xtdb-node ["SELECT person.name FROM person"])
+  ;;
+  ;; (q '{:find [person-name]
+  ;;      :where [[_ :person/name person-name]]})
+  ;;
+  (xt/q xtdb-node ["SELECT person.name 
+                    FROM person"])
 
   ;; define some movie data
   (def movies
@@ -289,57 +296,77 @@
    (apply
     vector
     (for [{:keys [id title year director cast sequel trivia]} movies]
-      [:sql ["INSERT INTO movie (xt$id, title, year, director, cast, sequel, trivia) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      [:sql ["INSERT INTO movie (xt$id, title, year, director, cast, sequel, trivia) 
+              VALUES (?, ?, ?, ?, ?, ?, ?)"
              id title year director cast sequel trivia]])))
 
   ;; query all of the movie titles
   ;;
   ;; (q '{:find [movie-title]
   ;;      :where [[_ :movie/title movie-title]]})
-  (xt/q xtdb-node ["SELECT movie.title FROM movie"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.title 
+                    FROM movie"])
 
   ;; query all movie entity ids
   ;;
   ;; (q '{:find [movie-eid]
   ;;      :where [[movie-eid :movie/title _]]})
-  (xt/q xtdb-node ["SELECT movie.xt$id FROM movie"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.xt$id 
+                    FROM movie"])
 
   ;; query all distinct movie years 
   ;;
   ;; (q '{:find [movie-year]
   ;;      :where [[_ :movie/year movie-year]]})
-  (xt/q xtdb-node ["SELECT DISTINCT movie.year FROM movie"])
+  ;;
+  (xt/q xtdb-node ["SELECT DISTINCT movie.year 
+                    FROM movie"])
 
   ;; query the entity ids of movies made in 1987
   ;;
   ;; (q '{:find [movie-eid]
   ;;      :where [[movie-eid :movie/year 1987]]})
-  (xt/q xtdb-node ["SELECT movie.xt$id FROM movie WHERE movie.year = 1987"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.xt$id 
+                    FROM movie 
+                    WHERE movie.year = 1987"])
 
   ;; query the entity-id and title of all movies in the database
   ;;
   ;; (q '{:find [movie-eid movie-title]
   ;;      :where [[movie-eid :movie/title movie-title]]})
-  (xt/q xtdb-node ["SELECT movie.xt$id, movie.title FROM movie"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.xt$id, movie.title 
+                    FROM movie"])
 
   ;; query the name of all people in the database
   ;;
   ;; (q '{:find [person-name]
   ;;      :where [[_ :person/name person-name]]})
-  (xt/q xtdb-node ["SELECT person.name FROM person"])
+  ;;
+  (xt/q xtdb-node ["SELECT person.name 
+                    FROM person"])
 
   ;; query movie titles made in 1985
   ;; (q '{:find [movie-title-made-in-1985]
   ;;      :where [[movie-eid :movie/title movie-title-made-in-1985]
   ;;              [movie-eid :movie/year 1985]]})
-  (xt/q xtdb-node ["SELECT movie.title FROM movie WHERE movie.year = 1985"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.title 
+                    FROM movie 
+                    WHERE movie.year = 1985"])
 
   ;; what year was "Alien" released?
   ;;
   ;; (q '{:find [alien-release-year]
   ;;      :where [[movie-eid :movie/year alien-release-year]
   ;;              [movie-eid :movie/title "Alien"]]})
-  (xt/q xtdb-node ["SELECT movie.year FROM movie WHERE movie.title = 'Alien'"])
+  ;;
+  (xt/q xtdb-node ["SELECT movie.year 
+                    FROM movie 
+                    WHERE movie.title = 'Alien'"])
 
   ;; who directed RoboCop?
   ;;
@@ -354,6 +381,11 @@
                           (movie.title = 'RoboCop')"])
 
   (xt/q xtdb-node ["SELECT person.name AS director_name
+                    FROM movie
+                    JOIN person ON (person.xt$id = movie.director)
+                    WHERE movie.title = 'RoboCop'"])
+
+  (xt/q xtdb-node ["SELECT person.name AS director_name
                     FROM person
                     WHERE person.xt$id IN (SELECT movie.director
                                            FROM movie
@@ -366,26 +398,8 @@
   ;;              [movie-eid :movie/cast cast-eid]
   ;;              [movie-eid :movie/director director-eid]
   ;;              [director-eid :person/name director-name]]})
-  (xt/q xtdb-node ["SELECT movie.director
-                    FROM movie
-                    WHERE person.name = 'Arnold Schwarzenegger'"])
-
-  (xt/q xtdb-node ["SELECT movie.cast
-                    FROM movie
-                    WHERE movie.title = 'RoboCop'"])
-
-  (xt/q xtdb-node ["SELECT person.xt$id
-                    FROM person
-                    WHERE person.name = 'Arnold Schwarzenegger'"])
-
-  (xt/q xtdb-node ["SELECT DISTINCT person.name AS director_name
-                    FROM movie, person
-                    JOIN person ON person.id = ANY(movie.cast)
-                    WHERE person.name = 'Arnold Schwarzenegger'"])
-
-  (xt/q xtdb-node ["SELECT movie.title
-                    FROM movie
-                    WHERE 'Arnold Schwarzenegger' IN (SELECT movie.cast FROM movie)"])
+  ;; 
+  ;; can this be done in SQL, perhaps using UNNEST, or is a many-to-many 'cast' table required?
 
   ;; query all movies released before 1984
   ;;
@@ -393,26 +407,32 @@
   ;;      :where [[m :movie/title title]
   ;;              [m :movie/year year]
   ;;              [(< year 1984)]]})
-  (xt/q xtdb-node ["SELECT movie.title FROM movie WHERE movie.year < 1984"])
+  (xt/q xtdb-node ["SELECT movie.title 
+                    FROM movie 
+                    WHERE movie.year < 1984"])
 
   ;; find all people whose names start with "M"
   ;;
   ;; (q '{:find [name]
   ;;      :where [[p :person/name name]
   ;;              [(clojure.string/starts-with? name "M")]]})
-  (xt/q xtdb-node ["SELECT person.name FROM person WHERE person.name LIKE 'M%'"])
+  (xt/q xtdb-node ["SELECT person.name 
+                    FROM person 
+                    WHERE person.name LIKE 'M%'"])
 
   ;; count the number of movies in the database
   ;;
   ;; (q '{:find [(count m)]
   ;;      :where [[m :movie/title _]]})
-  (xt/q xtdb-node ["SELECT COUNT(movie.title) AS movie_count FROM movie"])
+  (xt/q xtdb-node ["SELECT COUNT(movie.title) AS movie_count 
+                    FROM movie"])
 
   ;; query the birth date of the oldest person in the database
   ;;
   ;; (q '{:find [(min birth-date)]
   ;;      :where [[_ :person/born birth-date]]})
-  (xt/q xtdb-node ["SELECT MIN(person.born) AS oldest_birth_date FROM person"])
+  (xt/q xtdb-node ["SELECT MIN(person.born) AS oldest_birth_date 
+                    FROM person"])
 
 ;
   )"
