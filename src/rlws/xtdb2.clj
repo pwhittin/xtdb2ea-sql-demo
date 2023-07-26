@@ -183,113 +183,113 @@
     [{:title "The Terminator",
       :year 1984,
       :director -100,
-      :cast [-101 -102 -103],
+      :cast-members [-101 -102 -103],
       :sequel -207,
       :id -200}
      {:title "First Blood",
       :year 1982,
       :director -104,
-      :cast [-105 -106 -107],
+      :cast-members [-105 -106 -107],
       :sequel -209,
       :id -201}
      {:title "Predator",
       :year 1987,
       :director -108,
-      :cast [-101 -109 -110],
+      :cast-members [-101 -109 -110],
       :sequel -211,
       :id -202}
      {:title "Lethal Weapon",
       :year 1987,
       :director -111,
-      :cast [-112 -113 -114],
+      :cast-members [-112 -113 -114],
       :sequel -212,
       :id -203}
      {:title "RoboCop",
       :year 1987,
       :director -115,
-      :cast [-116 -117 -118],
+      :cast-members [-116 -117 -118],
       :id -204}
      {:title "Commando",
       :year 1985,
       :director -119,
-      :cast [-101 -120 -121],
+      :cast-members [-101 -120 -121],
       :trivia "In 1986, a sequel was written with an eye to having\n  John McTiernan direct. Schwarzenegger wasn't interested in reprising\n  the role. The script was then reworked with a new central character,\n  eventually played by Bruce Willis, and became Die Hard",
       :id -205}
      {:title "Die Hard",
       :year 1988,
       :director -108,
-      :cast [-122 -123 -124],
+      :cast-members [-122 -123 -124],
       :id -206}
      {:title "Terminator 2: Judgment Day",
       :year 1991,
       :director -100,
-      :cast [-101 -102 -125 -126],
+      :cast-members [-101 -102 -125 -126],
       :sequel -208,
       :id -207}
      {:title "Terminator 3: Rise of the Machines",
       :year 2003,
       :director -127,
-      :cast [-101 -128 -129],
+      :cast-members [-101 -128 -129],
       :id -208}
      {:title "Rambo: First Blood Part II",
       :year 1985,
       :director -130,
-      :cast [-105 -106 -131],
+      :cast-members [-105 -106 -131],
       :sequel -210,
       :id -209}
      {:title "Rambo III",
       :year 1988,
       :director -132,
-      :cast [-105 -106 -133],
+      :cast-members [-105 -106 -133],
       :id -210}
      {:title "Predator 2",
       :year 1990,
       :director -134,
-      :cast [-113 -114 -135],
+      :cast-members [-113 -114 -135],
       :id -211}
      {:title "Lethal Weapon 2",
       :year 1989,
       :director -111,
-      :cast [-112 -113 -136],
+      :cast-members [-112 -113 -136],
       :sequel -213,
       :id -212}
      {:title "Lethal Weapon 3",
       :year 1992,
       :director -111,
-      :cast [-112 -113 -136],
+      :cast-members [-112 -113 -136],
       :id -213}
      {:title "Alien",
       :year 1979,
       :director -137,
-      :cast [-138 -139 -140],
+      :cast-members [-138 -139 -140],
       :sequel -215,
       :id -214}
      {:title "Aliens",
       :year 1986,
       :director -100,
-      :cast [-139 -141 -103],
+      :cast-members [-139 -141 -103],
       :id -215}
      {:title "Mad Max",
       :year 1979,
       :director -142,
-      :cast [-112 -143 -144],
+      :cast-members [-112 -143 -144],
       :sequel -217,
       :id -216}
      {:title "Mad Max 2",
       :year 1981,
       :director -142,
-      :cast [-112 -145 -146],
+      :cast-members [-112 -145 -146],
       :sequel -218,
       :id -217}
      {:title "Mad Max Beyond Thunderdome",
       :year 1985,
-      :director [-142 -147],
-      :cast [-112 -148],
+      :director -142,
+      :cast-members [-112 -148],
       :id -218}
      {:title "Braveheart",
       :year 1995,
-      :director [-112],
-      :cast [-112 -149],
+      :director -112,
+      :cast-members [-112 -149],
       :id -219}])
 
   ;; insert each movie into the database using a SQL prepared statement
@@ -299,17 +299,17 @@
   ;;
   (xt/submit-tx
    xtdb-node
-   (apply vector (for [{:keys [id title year director cast sequel trivia]} movies]
-                   [:sql ["INSERT INTO movie (xt$id, title, year, director, cast, sequel, trivia) 
+   (apply vector (for [{:keys [id title year director cast-members sequel trivia]} movies]
+                   [:sql ["INSERT INTO movie (xt$id, title, year, director, cast_members, sequel, trivia) 
                            VALUES (?, ?, ?, ?, ?, ?, ?)"
-                          id title year director cast sequel trivia]])))
+                          id title year director cast-members sequel trivia]])))
 
   ;; query all of the movie titles
   ;;
   ;; (q '{:find [movie-title]
   ;;      :where [[_ :movie/title movie-title]]})
   ;;
-  (xt/q xtdb-node ["SELECT movie.title 
+  (xt/q xtdb-node ["SELECT movie.title
                     FROM movie"])
 
   ;; query all movie entity ids
@@ -399,14 +399,22 @@
   ;; query directors who have directed Arnold Schwarzenegger in a movie
   ;;
   ;; (q '{:find [director-name]
-  ;;      :where [[cast-eid :person/name "Arnold Schwarzenegger"]
-  ;;              [movie-eid :movie/cast cast-eid]
+  ;;      :where [[cast-member-eid :person/name "Arnold Schwarzenegger"]
+  ;;              [movie-eid :movie/cast-members cast-member-eid]
   ;;              [movie-eid :movie/director director-eid]
   ;;              [director-eid :person/name director-name]]})
-  ;; 
-  ;; can this be done in SQL, perhaps using UNNEST, or is a many-to-many 'cast' table required?
+  ;;
+  ;; The following query works with PostgreSQL, but fails with XTDB 2.x (pre-alpha) @ dev-SNAPSHOT @ 4c72485
+  ;;
+  (xt/q xtdb-node ["SELECT DISTINCT person.name AS director_name
+                    FROM movie
+                    JOIN person ON movie.director = person.id
+                    WHERE EXISTS (SELECT cast_members.id
+                                         FROM unnest (movie.cast_members) AS cast_members(id)
+                                         JOIN person ON cast_members.id = person.id
+                                         WHERE person.name = 'Arnold Schwarzenegger')"])
 
-  ;; query all movies released before 1984
+;; query all movies released before 1984
   ;;
   ;; (q '{:find [title]
   ;;      :where [[m :movie/title title]
