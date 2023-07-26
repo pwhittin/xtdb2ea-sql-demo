@@ -161,12 +161,14 @@
       :id -149}])
 
   ;; insert each person into the database using a SQL prepared statement
-  (xt/submit-tx
-   xtdb-node
-   (apply vector (for [{:keys [id name born death]} persons]
-                   [:sql ["INSERT INTO person (xt$id, name, born, death) 
-                           VALUES (?, ?, ?, ?)"
-                          id name born death]])))
+  ;;
+  ;; (xt/submit-tx xtdb-node (for [person persons]
+  ;;                           [:xtdb.api/put person])) 
+  ;;
+  (xt/submit-tx xtdb-node (apply vector (for [{:keys [id name born death]} persons]
+                                          [:sql ["INSERT INTO person (xt$id, name, born, death) 
+                                                  VALUES (?, ?, ?, ?)"
+                                                 id name born death]])))
 
   ;; query all of the person names
   ;;
@@ -291,14 +293,16 @@
       :id -219}])
 
   ;; insert each movie into the database using a SQL prepared statement
+  ;;
+  ;; (xt/submit-tx xtdb-node (for [movie movies]
+  ;;                           [:xtdb.api/put movie])) 
+  ;;
   (xt/submit-tx
    xtdb-node
-   (apply
-    vector
-    (for [{:keys [id title year director cast sequel trivia]} movies]
-      [:sql ["INSERT INTO movie (xt$id, title, year, director, cast, sequel, trivia) 
-              VALUES (?, ?, ?, ?, ?, ?, ?)"
-             id title year director cast sequel trivia]])))
+   (apply vector (for [{:keys [id title year director cast sequel trivia]} movies]
+                   [:sql ["INSERT INTO movie (xt$id, title, year, director, cast, sequel, trivia) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?)"
+                          id title year director cast sequel trivia]])))
 
   ;; query all of the movie titles
   ;;
@@ -374,6 +378,7 @@
   ;;      :where [[movie-eid :movie/title "RoboCop"]
   ;;              [movie-eid :movie/director robocop-director-eid]
   ;;              [robocop-director-eid :person/name robocop-director-name]]})
+  ;;
   (xt/q xtdb-node ["SELECT person.name AS director_name
                     FROM movie, person
                     WHERE (person.xt$id = movie.director)
@@ -407,6 +412,7 @@
   ;;      :where [[m :movie/title title]
   ;;              [m :movie/year year]
   ;;              [(< year 1984)]]})
+  ;;
   (xt/q xtdb-node ["SELECT movie.title 
                     FROM movie 
                     WHERE movie.year < 1984"])
@@ -416,6 +422,7 @@
   ;; (q '{:find [name]
   ;;      :where [[p :person/name name]
   ;;              [(clojure.string/starts-with? name "M")]]})
+  ;;
   (xt/q xtdb-node ["SELECT person.name 
                     FROM person 
                     WHERE person.name LIKE 'M%'"])
@@ -424,6 +431,7 @@
   ;;
   ;; (q '{:find [(count m)]
   ;;      :where [[m :movie/title _]]})
+  ;;
   (xt/q xtdb-node ["SELECT COUNT(movie.title) AS movie_count 
                     FROM movie"])
 
@@ -431,8 +439,9 @@
   ;;
   ;; (q '{:find [(min birth-date)]
   ;;      :where [[_ :person/born birth-date]]})
+  ;;
   (xt/q xtdb-node ["SELECT MIN(person.born) AS oldest_birth_date 
                     FROM person"])
 
-;
-  )"
+  ;
+  )
