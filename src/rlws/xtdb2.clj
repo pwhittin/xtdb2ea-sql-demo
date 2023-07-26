@@ -182,113 +182,113 @@
   (def movies
     [{:title "The Terminator",
       :year 1984,
-      :director -100,
+      :directors [-100],
       :cast-members [-101 -102 -103],
       :sequel -207,
       :id -200}
      {:title "First Blood",
       :year 1982,
-      :director -104,
+      :directors [-104],
       :cast-members [-105 -106 -107],
       :sequel -209,
       :id -201}
      {:title "Predator",
       :year 1987,
-      :director -108,
+      :directors [-108],
       :cast-members [-101 -109 -110],
       :sequel -211,
       :id -202}
      {:title "Lethal Weapon",
       :year 1987,
-      :director -111,
+      :directors [-111],
       :cast-members [-112 -113 -114],
       :sequel -212,
       :id -203}
      {:title "RoboCop",
       :year 1987,
-      :director -115,
+      :directors [-115],
       :cast-members [-116 -117 -118],
       :id -204}
      {:title "Commando",
       :year 1985,
-      :director -119,
+      :directors [-119],
       :cast-members [-101 -120 -121],
       :trivia "In 1986, a sequel was written with an eye to having\n  John McTiernan direct. Schwarzenegger wasn't interested in reprising\n  the role. The script was then reworked with a new central character,\n  eventually played by Bruce Willis, and became Die Hard",
       :id -205}
      {:title "Die Hard",
       :year 1988,
-      :director -108,
+      :directors [-108],
       :cast-members [-122 -123 -124],
       :id -206}
      {:title "Terminator 2: Judgment Day",
       :year 1991,
-      :director -100,
+      :directors [-100],
       :cast-members [-101 -102 -125 -126],
       :sequel -208,
       :id -207}
      {:title "Terminator 3: Rise of the Machines",
       :year 2003,
-      :director -127,
+      :directors [-127],
       :cast-members [-101 -128 -129],
       :id -208}
      {:title "Rambo: First Blood Part II",
       :year 1985,
-      :director -130,
+      :directors [-130],
       :cast-members [-105 -106 -131],
       :sequel -210,
       :id -209}
      {:title "Rambo III",
       :year 1988,
-      :director -132,
+      :directors [-132],
       :cast-members [-105 -106 -133],
       :id -210}
      {:title "Predator 2",
       :year 1990,
-      :director -134,
+      :directors [-134],
       :cast-members [-113 -114 -135],
       :id -211}
      {:title "Lethal Weapon 2",
       :year 1989,
-      :director -111,
+      :directors [-111],
       :cast-members [-112 -113 -136],
       :sequel -213,
       :id -212}
      {:title "Lethal Weapon 3",
       :year 1992,
-      :director -111,
+      :directors [-111],
       :cast-members [-112 -113 -136],
       :id -213}
      {:title "Alien",
       :year 1979,
-      :director -137,
+      :directors [-137],
       :cast-members [-138 -139 -140],
       :sequel -215,
       :id -214}
      {:title "Aliens",
       :year 1986,
-      :director -100,
+      :directors [-100],
       :cast-members [-139 -141 -103],
       :id -215}
      {:title "Mad Max",
       :year 1979,
-      :director -142,
+      :directors [-142],
       :cast-members [-112 -143 -144],
       :sequel -217,
       :id -216}
      {:title "Mad Max 2",
       :year 1981,
-      :director -142,
+      :directors [-142],
       :cast-members [-112 -145 -146],
       :sequel -218,
       :id -217}
      {:title "Mad Max Beyond Thunderdome",
       :year 1985,
-      :director -142,
+      :directors [-142 -147],
       :cast-members [-112 -148],
       :id -218}
      {:title "Braveheart",
       :year 1995,
-      :director -112,
+      :directors [-112],
       :cast-members [-112 -149],
       :id -219}])
 
@@ -299,10 +299,10 @@
   ;;
   (xt/submit-tx
    xtdb-node
-   (apply vector (for [{:keys [id title year director cast-members sequel trivia]} movies]
-                   [:sql ["INSERT INTO movie (xt$id, title, year, director, cast_members, sequel, trivia) 
+   (apply vector (for [{:keys [id title year directors cast-members sequel trivia]} movies]
+                   [:sql ["INSERT INTO movie (xt$id, title, year, directors, cast_members, sequel, trivia) 
                            VALUES (?, ?, ?, ?, ?, ?, ?)"
-                          id title year director cast-members sequel trivia]])))
+                          id title year directors cast-members sequel trivia]])))
 
   ;; query all of the movie titles
   ;;
@@ -380,21 +380,10 @@
   ;;              [robocop-director-eid :person/name robocop-director-name]]})
   ;;
   (xt/q xtdb-node ["SELECT person.name AS director_name
-                    FROM movie, person
-                    WHERE (person.xt$id = movie.director)
-                          AND
-                          (movie.title = 'RoboCop')"])
-
-  (xt/q xtdb-node ["SELECT person.name AS director_name
                     FROM movie
-                    JOIN person ON (person.xt$id = movie.director)
+                    JOIN UNNEST (movie.directors) AS directors(id) ON true
+                    JOIN person ON person.id = directors.id
                     WHERE movie.title = 'RoboCop'"])
-
-  (xt/q xtdb-node ["SELECT person.name AS director_name
-                    FROM person
-                    WHERE person.xt$id IN (SELECT movie.director
-                                           FROM movie
-                                           WHERE movie.title = 'RoboCop')"])
 
   ;; query directors who have directed Arnold Schwarzenegger in a movie
   ;;
@@ -406,15 +395,14 @@
   ;;
   ;; The following query works with PostgreSQL, but fails with XTDB 2.x (pre-alpha) @ dev-SNAPSHOT @ 4c72485
   ;;
-  (xt/q xtdb-node ["SELECT DISTINCT person.name AS director_name
-                    FROM movie
-                    JOIN person ON movie.director = person.id
-                    WHERE EXISTS (SELECT cast_members.id
-                                         FROM unnest (movie.cast_members) AS cast_members(id)
-                                         JOIN person ON cast_members.id = person.id
-                                         WHERE person.name = 'Arnold Schwarzenegger')"])
+  (xt/q xtdb-node ["SELECT DISTINCT director.name AS director_name
+                    FROM person, movie
+                    JOIN UNNEST (movie.cast_members) AS cast_members(id) ON TRUE
+                    JOIN UNNEST (movie.directors) AS directors(id) ON TRUE
+                    JOIN person AS director ON director.id = directors.id
+                    WHERE (person.id = cast_members.id) AND (person.name = 'Arnold Schwarzenegger')"])
 
-;; query all movies released before 1984
+  ;; query all movies released before 1984
   ;;
   ;; (q '{:find [title]
   ;;      :where [[m :movie/title title]
@@ -452,4 +440,4 @@
                     FROM person"])
 
   ;
-  )
+  )"
