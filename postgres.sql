@@ -88,13 +88,28 @@ INSERT INTO movie (id, title, directors, cast_members) VALUES
   (-218, 'Mad Max Beyond Thunderdome', '{-142, -147}', '{-112, -148}'),
   (-219, 'Braveheart', '{-112}', '{-112, -149}');
 
+-- who directed RoboCop? - version 1
+SELECT person.name AS director_name
+FROM movie
+JOIN UNNEST (movie.directors) AS directors(id) ON true
+JOIN person ON person.id = directors.id
+WHERE movie.title = 'RoboCop';
+
+-- who directed RoboCop? - version 2
+SELECT person.name AS director_name
+FROM person
+JOIN movie ON person.id = ANY (movie.directors)
+WHERE movie.title = 'RoboCop';
+
+-- which directors directed Arnold Schwarzenegger? - version 1
 SELECT DISTINCT director.name AS director_name
 FROM person, movie
-JOIN unnest(movie.cast_members) AS cast_members(id) ON true
-JOIN unnest(movie.directors) AS directors(id) ON true
+JOIN UNNEST(movie.cast_members) AS cast_members(id) ON true
+JOIN UNNEST(movie.directors) AS directors(id) ON true
 JOIN person AS director ON director.id = directors.id
 WHERE (person.id = cast_members.id) AND  (person.name = 'Arnold Schwarzenegger');
 
+-- which directors directed Arnold Schwarzenegger? - version 2
 SELECT DISTINCT director.name AS director_name
 FROM person
 JOIN movie ON person.id = ANY (movie.cast_members)
